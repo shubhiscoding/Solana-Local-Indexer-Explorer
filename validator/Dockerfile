@@ -12,10 +12,10 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Clone Yellowstone plugin (correct repo is rpcpool/yellowstone-grpc)
-# Use a version compatible with Solana v1.18.x
+# Use a version compatible with Solana v1.18.26
 RUN git clone https://github.com/rpcpool/yellowstone-grpc.git && \
     cd yellowstone-grpc && \
-    git checkout v1.15.3+solana.1.18.25
+    git checkout v1.15.3+solana.1.18.26 || git checkout v1.15.3+solana.1.18.25
 
 # Build plugin (specifically the geyser plugin)
 WORKDIR /build/yellowstone-grpc
@@ -55,5 +55,5 @@ ENV SOLANA_KEYPAIR="/root/.config/solana/id.json"
 # 10000 = Yellowstone gRPC
 EXPOSE 8899 10000
 
-# Use the correct config path
-CMD ["solana-test-validator", "--geyser-plugin-config", "/config/plugin-config.json"]
+# Use the correct config path and ledger location
+CMD ["solana-test-validator", "--ledger", "/ledger", "--geyser-plugin-config", "/config/plugin-config.json"]

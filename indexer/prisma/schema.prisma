@@ -1,0 +1,42 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Block {
+  slot        BigInt   @id
+  parentSlot  BigInt?
+  blockhash   String
+  blockTime   BigInt?
+  transactions Transaction[]
+}
+
+model Transaction {
+  signature  String   @id
+  slot       BigInt
+  success    Boolean
+  fee        BigInt
+  signers    String[]
+  raw        Json?
+  block      Block    @relation(fields: [slot], references: [slot])
+  instructions Instruction[]
+}
+
+model Instruction {
+  id               Int      @id @default(autoincrement())
+  signature        String
+  programId        String
+  instructionIndex Int
+  raw              Json
+  transaction      Transaction @relation(fields: [signature], references: [signature])
+}
