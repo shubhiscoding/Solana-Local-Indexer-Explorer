@@ -1,51 +1,68 @@
 # Solana Local Explorer
 
-A local Solana blockchain explorer with validator, indexer, and database services.
+A self-hosted Solana blockchain explorer with a test validator, gRPC indexer, PostgreSQL database, and Next.js web UI.
 
 ## Quick Start
 
-### Using Docker Compose (Recommended)
+```bash
+docker compose up --build -d
+```
 
-1. **Start all services:**
-   ```bash
-   docker-compose up -d
-   ```
+That's it. All four services start automatically with proper dependency ordering:
 
-2. **View logs:**
-   ```bash
-   # All services
-   docker-compose logs -f
-   
-   # Specific service
-   docker-compose logs -f validator
-   docker-compose logs -f indexer
-   ```
+1. **Validator** + **PostgreSQL** start first
+2. **Indexer** starts after both are healthy
+3. **Explorer** starts after the indexer is running
 
-3. **Stop services:**
-   ```bash
-   docker-compose down
-   ```
+Open **http://localhost:3000** to view the explorer.
 
-### Services
+## Services
 
-- **Validator** (`solana-validator`)
-  - Solana RPC: `http://localhost:8899`
-  - Yellowstone gRPC: `localhost:10000`
-  - Ledger stored in Docker volume `validator-ledger`
+| Service | Container | Ports | Description |
+|---------|-----------|-------|-------------|
+| Validator | `solana-validator` | `8899` (RPC), `10000` (gRPC) | Solana test-validator with Yellowstone gRPC Geyser plugin |
+| PostgreSQL | `explorer-postgres` | `5433` (host) → `5432` | Stores indexed transactions and failed transactions |
+| Indexer | `solana-indexer` | — | Streams transactions via gRPC and writes to PostgreSQL |
+| Explorer | `solana-explorer` | `3000` | Next.js web UI — dashboard, transaction list, transaction detail |
 
-- **PostgreSQL** (`explorer-postgres`)
-  - Port: `5432`
-  - Database: `explorer`
-  - User: `postgres`
-  - Password: `password`
+## Explorer UI
 
-- **Indexer** (`solana-indexer`)
-  - Connects to validator gRPC and indexes blocks/transactions
-  - Automatically runs database migrations on startup
+- **Dashboard** (`/`) — stat cards (total txs, failed, success rate, latest slot) + recent transactions table. Auto-refreshes every 5s.
+- **Transaction List** (`/transactions`) — paginated table of all transactions with a refresh button.
+- **Transaction Detail** (`/transactions/[signature]`) — full detail: accounts, instructions, fees, memos, error logs.
 
-### Using Existing Ledger
+## Common Commands
 
-If you want to use your existing `test-ledger` directory instead of a fresh ledger, update `docker-compose.yml`:
+```bash
+# Start all services
+docker compose up -d
+
+# View logs
+docker compose logs -f              # all services
+docker compose logs -f indexer      # specific service
+
+# Rebuild after code changes
+docker compose up --build -d
+
+# Stop everything
+docker compose down
+
+# Send a test transaction (from inside the validator container)
+docker exec solana-validator solana-keygen new -o /root/.config/solana/id.json --no-bip39-passphrase --force
+docker exec solana-validator solana airdrop 5 --url http://127.0.0.1:8899
+docker exec solana-validator solana transfer --allow-unfunded-recipient 11111111111111111111111111111112 0.01 --url http://127.0.0.1:8899
+```
+
+## Access from Host
+
+- **Explorer UI**: http://localhost:3000
+- **Solana RPC**: http://localhost:8899
+- **gRPC**: localhost:10000
+- **Database**: `postgresql://postgres:password@localhost:5433/explorer`
+
+## Using an Existing Ledger
+
+To use your existing `test-ledger` directory instead of a fresh ledger, update `docker-compose.yml`:
 
 ```yaml
 volumes:
@@ -54,28 +71,9 @@ volumes:
   - ./test-ledger:/ledger
 ```
 
-### Verify gRPC Server
+## Tech Stack
 
-The validator should log that the Yellowstone gRPC server is running. Check logs:
-
-```bash
-docker-compose logs validator | grep -i "grpc\|yellowstone\|10000"
-```
-
-You should see the gRPC server listening on port 10000.
-
-## Development
-
-### Rebuild Services
-
-```bash
-docker-compose build
-docker-compose up -d
-```
-
-### Access Services
-
-- **Solana CLI** (from host): Use `http://localhost:8899` as RPC URL
-- **Database** (from host): `postgresql://postgres:password@localhost:5432/explorer`
-- **gRPC** (from host): `localhost:10000`
-
+- **Validator**: Solana test-validator v1.18.26 + Yellowstone gRPC Geyser plugin v1.15.3
+- **Indexer**: TypeScript, Yellowstone gRPC client, Prisma ORM
+- **Database**: PostgreSQL 15
+- **Explorer**: Next.js 16 (App Router), Tailwind CSS v4, Prisma 5
