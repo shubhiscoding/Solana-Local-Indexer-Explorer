@@ -8,3 +8,5 @@ build
 .vscode
 prisma/migrations
 test-ledger/
+
+*.log

@@ -3,6 +3,7 @@ import Client, {
   CommitmentLevel,
   SubscribeRequest,
 } from "@triton-one/yellowstone-grpc";
+import bs58 from "bs58";
 
 const YELLOWSTONE_ADDR = process.env.YELLOWSTONE_ADDR || "localhost:10000";
 const YELLOWSTONE_XTOKEN = process.env.YELLOWSTONE_XTOKEN || null;
@@ -66,23 +67,12 @@ export const startIndexer = async () => {
     console.log("✅ Subscribed to slots and transactions");
 
     stream.on("data", async (data: any) => {
-      // Handle slot updates
+      // Handle slot updates - we can log them but don't need to store blocks
       if (data.slot) {
         const s = data.slot.slot;
-        const p = data.slot.parent;
-
-        await prisma.block.upsert({
-          where: { slot: BigInt(s) },
-          update: {},
-          create: {
-            slot: BigInt(s),
-            parentSlot: p ? BigInt(p) : null,
-            blockhash: `local-${s}`, // test-validator doesn't give blockhash
-            blockTime: BigInt(Date.now()),
-          },
-        });
-
-        console.log(`🧱 Indexed slot ${s}`);
+        const status = data.slot.status;
+        // Status: 0 = first seen, 1 = confirmed, 2 = finalized
+        console.log(`🧱 Slot ${s} status: ${status}`);
       }
 
       // Handle transaction updates
@@ -93,28 +83,139 @@ export const startIndexer = async () => {
         
         if (!transaction) return;
 
-        // Extract signature from transaction
-        const signature = transaction.signature || 
-          (transaction.transaction?.signatures?.[0]) ||
-          "unknown";
+        // Extract signature from transaction and convert to base58 string
+        let signature: string;
+        if (transaction.signature) {
+          // Signature is a Buffer (64 bytes)
+          if (transaction.signature instanceof Uint8Array || 
+              (typeof Buffer !== "undefined" && Buffer.isBuffer(transaction.signature))) {
+            signature = bs58.encode(transaction.signature);
+          } else if (typeof transaction.signature === "string") {
+            signature = transaction.signature;
+          } else {
+            signature = "unknown";
+          }
+        } else {
+          signature = "unknown";
+        }
 
-        await prisma.transaction.upsert({
-          where: { signature },
-          update: {},
-          create: {
-            signature,
-            slot: BigInt(slot),
-            success: transaction.meta?.err === null || transaction.meta?.err === undefined,
-            fee: BigInt(transaction.meta?.fee || 0),
-            signers: transaction.transaction?.message?.accountKeys?.slice(
-              0,
-              transaction.transaction.message.header.numRequiredSignatures
-            ) || [],
-            raw: transaction as any,
-          },
-        });
+        // Extract all accounts (not just signers) and convert to base58 strings
+        const accounts: string[] = [];
+        if (transaction.transaction?.message?.accountKeys) {
+          transaction.transaction.message.accountKeys.forEach((key: any) => {
+            if (key instanceof Uint8Array || 
+                (typeof Buffer !== "undefined" && Buffer.isBuffer(key))) {
+              accounts.push(bs58.encode(key));
+            } else if (typeof key === "string") {
+              accounts.push(key);
+            }
+          });
+        }
 
-        console.log(`💸 Indexed transaction ${signature}`);
+        // Extract instructions as JSON array
+        const instructions: any[] = [];
+        if (transaction.transaction?.message?.instructions) {
+          transaction.transaction.message.instructions.forEach((inst: any, index: number) => {
+            // Convert instruction to JSON-serializable format
+            const instructionData: any = {
+              programIdIndex: inst.programIdIndex,
+              accounts: inst.accounts || [],
+              data: inst.data ? (inst.data instanceof Uint8Array || (typeof Buffer !== "undefined" && Buffer.isBuffer(inst.data)) 
+                ? bs58.encode(inst.data) 
+                : inst.data) : null,
+              instructionIndex: index,
+            };
+            // Add raw instruction data if available
+            if (inst) {
+              instructionData.raw = inst;
+            }
+            instructions.push(instructionData);
+          });
+        }
+
+        // Extract compute units used
+        const computeUnitsUsed = transaction.meta?.computeUnitsConsumed 
+          ? BigInt(transaction.meta.computeUnitsConsumed) 
+          : undefined;
+
+        // Extract fee
+        const fee = transaction.meta?.fee 
+          ? BigInt(transaction.meta.fee) 
+          : undefined;
+
+        // Determine success
+        const success = transaction.meta?.err === null || transaction.meta?.err === undefined;
+
+        // Extract blockTime (use current time if not available)
+        const blockTime = new Date();
+
+        // Extract log messages
+        const logs = transaction.meta?.logMessages || [];
+
+        // Extract error information
+        const error = transaction.meta?.err 
+          ? JSON.stringify(transaction.meta.err) 
+          : null;
+
+        try {
+          if (success) {
+            // Store successful transaction
+            // Note: Type assertions needed until Prisma client is regenerated
+            await (prisma.transaction as any).upsert({
+              where: { signature },
+              update: {
+                slot: BigInt(slot),
+                blockTime,
+                success,
+                fee,
+                computeUnitsUsed,
+                accounts,
+                instructions,
+              },
+              create: {
+                signature,
+                slot: BigInt(slot),
+                blockTime,
+                success,
+                fee,
+                computeUnitsUsed,
+                accounts,
+                instructions,
+              },
+            });
+
+            console.log(`💸 Indexed transaction ${signature.substring(0, 8)}... (slot ${slot})`);
+          } else {
+            // Store failed transaction in FailedTransaction table
+            // Note: Type assertion needed until Prisma client is regenerated
+            const prismaAny = prisma as any;
+            await prismaAny.failedTransaction.upsert({
+              where: { signature },
+              update: {
+                slot: BigInt(slot),
+                error: error || "Unknown error",
+                logs,
+                accounts,
+                blockTime,
+              },
+              create: {
+                signature,
+                slot: BigInt(slot),
+                error: error || "Unknown error",
+                logs,
+                accounts,
+                blockTime,
+              },
+            });
+
+            console.log(`❌ Indexed failed transaction ${signature.substring(0, 8)}... (slot ${slot})`);
+          }
+        } catch (error: any) {
+          // Ignore unique constraint errors (transaction already exists)
+          if (error.code !== "P2002") {
+            console.error(`❌ Error indexing transaction ${signature}:`, error);
+          }
+        }
       }
     });
 

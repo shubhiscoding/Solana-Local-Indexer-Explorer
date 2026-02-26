@@ -7,7 +7,8 @@
     "dev": "tsx src/main.ts",
     "build": "tsc",
     "start": "node dist/main.js",
-    "migrate": "prisma migrate dev"
+    "migrate": "prisma migrate dev",
+    "debug-grpc": "tsx src/debug-grpc.ts"
   },
   "keywords": [],
   "author": "",
@@ -18,11 +19,13 @@
     "@prisma/client": "^5.7.0",
     "@triton-one/yellowstone-grpc": "^4.0.2",
     "@types/node": "^24.10.1",
+    "bs58": "^5.0.0",
     "prisma": "^5.7.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   },
   "devDependencies": {
+    "@types/bs58": "^5.0.0",
     "tsx": "^4.21.0"
   }
 }
