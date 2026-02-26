@@ -43,6 +43,17 @@ services:
       DATABASE_URL: postgresql://postgres:password@postgres:5432/explorer
       YELLOWSTONE_ADDR: validator:10000
       # YELLOWSTONE_XTOKEN: (optional - leave unset to connect without authentication)
+  explorer:
+    build: ./explorer
+    container_name: solana-explorer
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/explorer
+    restart: unless-stopped
 volumes:
   validator-ledger:
   pgdata:
