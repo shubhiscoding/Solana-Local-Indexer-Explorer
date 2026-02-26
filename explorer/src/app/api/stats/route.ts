@@ -35,7 +35,7 @@ export async function GET() {
       totalTransactions,
       totalFailed,
       successRate: Math.round(successRate * 10) / 10,
-      latestSlot: latestTx?.slot ?? 0n,
+      latestSlot: latestTx?.slot ?? 0,
       recentTransactions,
     })
   );

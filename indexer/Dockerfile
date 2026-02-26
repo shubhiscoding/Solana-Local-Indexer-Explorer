@@ -1,6 +1,5 @@
 FROM node:22
-
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN npm install -g pnpm@10
 
 WORKDIR /app
 

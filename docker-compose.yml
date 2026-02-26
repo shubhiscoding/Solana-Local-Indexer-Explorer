@@ -6,8 +6,6 @@ services:
       - "8899:8899"     # Solana RPC
       - "10000:10000"   # Yellowstone gRPC
     volumes:
-      # Use named volume (fresh ledger) or bind mount existing ledger:
-      # - ./test-ledger:/ledger
       - validator-ledger:/ledger
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8899/health"]
@@ -15,12 +13,13 @@ services:
       retries: 30
       timeout: 10s
       start_period: 30s
+
   postgres:
     image: postgres:15
     container_name: explorer-postgres
     restart: always
     ports:
-      - "5432:5432"
+      - "5433:5432"
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
@@ -31,6 +30,7 @@ services:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       retries: 10
+
   indexer:
     build: ./indexer
     container_name: solana-indexer
@@ -42,7 +42,8 @@ services:
     environment:
       DATABASE_URL: postgresql://postgres:password@postgres:5432/explorer
       YELLOWSTONE_ADDR: validator:10000
-      # YELLOWSTONE_XTOKEN: (optional - leave unset to connect without authentication)
+    restart: unless-stopped
+
   explorer:
     build: ./explorer
     container_name: solana-explorer
@@ -51,9 +52,12 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      indexer:
+        condition: service_started
     environment:
       DATABASE_URL: postgresql://postgres:password@postgres:5432/explorer
     restart: unless-stopped
+
 volumes:
   validator-ledger:
   pgdata:
