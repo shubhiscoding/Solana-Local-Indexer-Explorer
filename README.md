@@ -77,3 +77,7 @@ volumes:
 - **Indexer**: TypeScript, Yellowstone gRPC client, Prisma ORM
 - **Database**: PostgreSQL 15
 - **Explorer**: Next.js 16 (App Router), Tailwind CSS v4, Prisma 5
+
+## Demo WIP!
+
+[Screencast from 2026-03-09 00-42-20.webm](https://github.com/user-attachments/assets/4b105c01-2345-4df4-88ee-b20b1d4e6cff)
