@@ -21,15 +21,33 @@ Open **http://localhost:3000** to view the explorer.
 | Service | Container | Ports | Description |
 |---------|-----------|-------|-------------|
 | Validator | `solana-validator` | `8899` (RPC), `10000` (gRPC) | Solana test-validator with Yellowstone gRPC Geyser plugin |
-| PostgreSQL | `explorer-postgres` | `5433` (host) → `5432` | Stores indexed transactions and failed transactions |
+| PostgreSQL | `explorer-postgres` | `5433` (host) → `5432` | Stores transactions, accounts, account–tx links, and per-tx account balances |
 | Indexer | `solana-indexer` | — | Streams transactions via gRPC and writes to PostgreSQL |
-| Explorer | `solana-explorer` | `3000` | Next.js web UI — dashboard, transaction list, transaction detail |
+| Explorer | `solana-explorer` | `3000` | Next.js web UI — dashboard, transaction list, transaction detail, account detail |
 
 ## Explorer UI
 
 - **Dashboard** (`/`) — stat cards (total txs, failed, success rate, latest slot) + recent transactions table. Auto-refreshes every 5s.
 - **Transaction List** (`/transactions`) — paginated table of all transactions with a refresh button.
-- **Transaction Detail** (`/transactions/[signature]`) — full detail: accounts, instructions, fees, memos, error logs.
+- **Transaction Detail** (`/transactions/[signature]`) — full detail: accounts (clickable links to the account page), instructions, fees, memos, error logs.
+- **Account Detail** (`/accounts/[address]`) — address, first/last seen, latest balance (from indexed metadata), and a paginated **balance history** table (pre/post balance and change per transaction). Data appears for accounts that appear in transactions indexed after balance tracking was enabled.
+
+## Account indexing & balances
+
+The indexer reads `preBalances` and `postBalances` from each successful transaction’s metadata (same fields Solana RPC exposes on `getTransaction`) and stores one row per account key index in the `AccountBalance` table, linked to the transaction. The `Account` table is still updated for every involved address so you can open an account page once that address has been seen.
+
+**Note:** Only transactions indexed while this feature is deployed will have `AccountBalance` rows. Older rows in `Transaction` without corresponding balance records will still show on the transaction detail page, but the account page may show “Account not found” until a newer transaction involving that address is indexed.
+
+## API routes
+
+| Method | Route | Description |
+|--------|--------|-------------|
+| `GET` | `/api/stats` | Dashboard stats and recent transactions |
+| `GET` | `/api/transactions?page=&limit=` | Paginated transaction list |
+| `GET` | `/api/transactions/[signature]` | Single transaction (or failed tx) by signature |
+| `GET` | `/api/accounts/[address]?page=&limit=` | Account metadata, latest balance (from indexed history), paginated balance rows with linked transaction signatures |
+
+Query parameters `page` and `limit` follow the same conventions as the transaction list (defaults: page 1, limit 20; max limit 100 for accounts).
 
 ## Common Commands
 
