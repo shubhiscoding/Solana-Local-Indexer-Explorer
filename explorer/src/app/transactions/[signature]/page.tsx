@@ -78,12 +78,13 @@ export default function TransactionDetailPage() {
           </h3>
           <div className="space-y-1">
             {tx.accounts?.map((acct: string, i: number) => (
-              <p
+              <Link
                 key={i}
-                className="font-mono text-xs text-slate-300 bg-slate-900 px-3 py-1.5 rounded border border-slate-700"
+                href={`/accounts/${acct}`}
+                className="block font-mono text-xs text-emerald-400 hover:text-emerald-300 hover:underline bg-slate-900 px-3 py-1.5 rounded border border-slate-700"
               >
                 {acct}
-              </p>
+              </Link>
             ))}
           </div>
         </div>

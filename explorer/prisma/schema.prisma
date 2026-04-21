@@ -18,6 +18,8 @@ model Transaction {
   accounts         String[] // All account pubkeys involved
   instructions     Json[]   // Array of instruction data
   memos            Memo[]
+  accountTransactions AccountTransaction[]
+  accountBalances  AccountBalance[]
   createdAt        DateTime @default(now())
   
   @@index([slot])
@@ -48,4 +50,44 @@ model FailedTransaction {
   
   @@index([error])
   @@index([errorCode])
+}
+
+model Account {
+  id        String   @id @default(cuid())
+  address   String   @unique
+  firstSeen DateTime @default(now())
+  lastSeen  DateTime @updatedAt
+  accountTransactions AccountTransaction[]
+
+  @@index([address])
+}
+
+model AccountTransaction {
+  id            String      @id @default(cuid())
+  accountId     String
+  transactionId String
+  account       Account     @relation(fields: [accountId], references: [id])
+  transaction   Transaction @relation(fields: [transactionId], references: [id])
+
+  @@unique([accountId, transactionId])
+  @@index([accountId])
+  @@index([transactionId])
+}
+
+model AccountBalance {
+  id              String      @id @default(cuid())
+  accountAddress  String
+  transactionId   String
+  transaction     Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  accountIndex    Int
+  preBalance      BigInt
+  postBalance     BigInt
+  balanceChange   BigInt
+  slot            BigInt
+  blockTime       DateTime?
+  
+  @@index([accountAddress])
+  @@index([accountAddress, slot])
+  @@index([transactionId])
+  @@unique([transactionId, accountIndex])
 }

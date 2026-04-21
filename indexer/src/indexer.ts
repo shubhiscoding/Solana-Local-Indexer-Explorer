@@ -1,4 +1,8 @@
-import { prisma } from "./db/client";
+import {
+  upsertTransaction,
+  upsertFailedTransaction,
+  upsertAccountsForTransaction,
+} from "./db/query";
 import Client, {
   CommitmentLevel,
   SubscribeRequest,
@@ -157,55 +161,36 @@ export const startIndexer = async () => {
           ? JSON.stringify(transaction.meta.err) 
           : null;
 
+        // Extract balance information
+        const preBalances = transaction.meta?.preBalances || [];
+        const postBalances = transaction.meta?.postBalances || [];
+
         try {
           if (success) {
-            // Store successful transaction
-            // Note: Type assertions needed until Prisma client is regenerated
-            await (prisma.transaction as any).upsert({
-              where: { signature },
-              update: {
-                slot: BigInt(slot),
-                blockTime,
-                success,
-                fee,
-                computeUnitsUsed,
-                accounts,
-                instructions,
-              },
-              create: {
-                signature,
-                slot: BigInt(slot),
-                blockTime,
-                success,
-                fee,
-                computeUnitsUsed,
-                accounts,
-                instructions,
-              },
+            const tx = await upsertTransaction({
+              signature,
+              slot: BigInt(slot),
+              blockTime,
+              success,
+              fee,
+              computeUnitsUsed,
+              accounts,
+              instructions,
+              preBalances,
+              postBalances,
             });
+
+            await upsertAccountsForTransaction(tx.id, accounts);
 
             console.log(`💸 Indexed transaction ${signature.substring(0, 8)}... (slot ${slot})`);
           } else {
-            // Store failed transaction in FailedTransaction table
-            // Note: Type assertion needed until Prisma client is regenerated
-            const prismaAny = prisma as any;
-            await prismaAny.failedTransaction.upsert({
-              where: { signature },
-              update: {
-                slot: BigInt(slot),
-                error: error || "Unknown error",
-                logs,
-                accounts,
-                blockTime,
-              },
-              create: {
-                signature,
-                slot: BigInt(slot),
-                error: error || "Unknown error",
-                logs,
-                accounts,
-                blockTime,
-              },
+            await upsertFailedTransaction({
+              signature,
+              slot: BigInt(slot),
+              error: error || "Unknown error",
+              logs,
+              accounts,
+              blockTime,
             });
 
             console.log(`❌ Indexed failed transaction ${signature.substring(0, 8)}... (slot ${slot})`);
