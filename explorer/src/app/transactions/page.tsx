@@ -1,14 +1,31 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useEffect, useState, useCallback, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { CopyButton } from "@/components/copy-button";
+import { StatusBadge } from "@/components/status-badge";
+import { TableSkeleton } from "@/components/loading-skeleton";
+import { PaginationControls } from "@/components/pagination-controls";
 import type { TransactionListResponse } from "@/lib/types";
-import { Suspense } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { RefreshCw, ListFilter } from "lucide-react";
 
 function TransactionsList() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const page = parseInt(searchParams.get("page") || "1", 10);
 
   const [data, setData] = useState<TransactionListResponse | null>(null);
@@ -16,152 +33,149 @@ function TransactionsList() {
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  const fetchData = useCallback((isRefresh = false) => {
-    if (isRefresh) {
-      setRefreshing(true);
-    } else {
-      setLoading(true);
-    }
-    fetch(`/api/transactions?page=${page}&limit=20`)
-      .then((res) => res.json())
-      .then((d) => {
-        setData(d);
-        setLastUpdated(new Date());
-      })
-      .catch(console.error)
-      .finally(() => {
-        setLoading(false);
-        setRefreshing(false);
-      });
-  }, [page]);
+  const fetchData = useCallback(
+    (isRefresh = false) => {
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+      fetch(`/api/transactions?page=${page}&limit=20`)
+        .then((res) => res.json())
+        .then((d) => {
+          setData(d);
+          setLastUpdated(new Date());
+        })
+        .catch(console.error)
+        .finally(() => {
+          setLoading(false);
+          setRefreshing(false);
+        });
+    },
+    [page]
+  );
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  const goToPage = (p: number) => {
-    router.push(`/transactions?page=${p}`);
-  };
-
-  if (loading)
-    return <div className="text-center py-20 text-slate-500">Loading...</div>;
-  if (!data)
-    return <div className="text-center py-20 text-red-400">Failed to load</div>;
-
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-slate-100">
-          All Transactions
-        </h1>
+    <div className="space-y-6 animate-in-fade">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-6">
+        <div>
+          <h1 className="text-3xl font-heading font-bold tracking-tight">
+            All Transactions
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Browse the complete history of ledger transactions
+          </p>
+        </div>
         <div className="flex items-center gap-3">
           {lastUpdated && (
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-muted-foreground mr-1 hidden sm:inline-block">
               Updated {lastUpdated.toLocaleTimeString()}
             </span>
           )}
-          <button
+          <Button
             onClick={() => fetchData(true)}
             disabled={refreshing}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white rounded transition-colors"
+            variant="outline"
+            className="gap-2"
           >
-            <svg
-              className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              />
-            </svg>
-            {refreshing ? "Refreshing..." : "Refresh"}
-          </button>
+            <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
         </div>
       </div>
 
-      <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-900 text-slate-400 text-left">
-            <tr>
-              <th className="px-4 py-3">Signature</th>
-              <th className="px-4 py-3">Slot</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">Fee (lamports)</th>
-              <th className="px-4 py-3">Time</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-700">
-            {data.transactions.map((tx) => (
-              <tr key={tx.id} className="hover:bg-slate-700/50">
-                <td className="px-4 py-3">
-                  <Link
-                    href={`/transactions/${tx.signature}`}
-                    className="text-emerald-400 hover:underline font-mono text-xs"
-                  >
-                    {tx.signature.slice(0, 20)}...
-                  </Link>
-                </td>
-                <td className="px-4 py-3 font-mono text-slate-300">{tx.slot}</td>
-                <td className="px-4 py-3">
-                  <span
-                    className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
-                      tx.success
-                        ? "bg-emerald-900/50 text-emerald-400"
-                        : "bg-red-900/50 text-red-400"
-                    }`}
-                  >
-                    {tx.success ? "Success" : "Failed"}
-                  </span>
-                </td>
-                <td className="px-4 py-3 font-mono text-slate-300">{tx.fee ?? "-"}</td>
-                <td className="px-4 py-3 text-slate-400">
-                  {tx.blockTime
-                    ? new Date(tx.blockTime).toLocaleString()
-                    : "-"}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="flex items-center justify-between mt-4">
-        <p className="text-sm text-slate-400">
-          Page {data.pagination.page} of {data.pagination.totalPages} (
-          {data.pagination.total} total)
-        </p>
-        <div className="flex gap-2">
-          <button
-            onClick={() => goToPage(page - 1)}
-            disabled={page <= 1}
-            className="px-3 py-1.5 text-sm border border-slate-600 text-slate-300 rounded hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            Previous
-          </button>
-          <button
-            onClick={() => goToPage(page + 1)}
-            disabled={page >= data.pagination.totalPages}
-            className="px-3 py-1.5 text-sm border border-slate-600 text-slate-300 rounded hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            Next
-          </button>
+      {loading ? (
+        <TableSkeleton />
+      ) : !data ? (
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-12 text-center text-destructive">
+          <ListFilter className="h-8 w-8 mx-auto mb-4 opacity-50" />
+          <h3 className="font-semibold">Failed to load transactions</h3>
+          <p className="text-sm mt-1 mb-4 opacity-80">
+            There was an error communicating with the API.
+          </p>
+          <Button onClick={() => fetchData(true)} variant="outline">
+            Try again
+          </Button>
         </div>
-      </div>
+      ) : (
+        <>
+          <div className="rounded-md border animate-in-slide-up bg-card overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent bg-muted/40">
+                  <TableHead className="w-[300px]">Signature</TableHead>
+                  <TableHead>Slot</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Fee (SOL)</TableHead>
+                  <TableHead className="text-right">Time</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.transactions.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="h-24 text-center">
+                      No transactions found.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  data.transactions.map((tx) => (
+                    <TableRow key={tx.id} className="group">
+                      <TableCell className="font-mono">
+                        <div className="flex items-center gap-2">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Link
+                                href={`/transactions/${tx.signature}`}
+                                className="text-primary hover:underline hover:text-primary/80 transition-colors"
+                              >
+                                {tx.signature.slice(0, 20)}...
+                              </Link>
+                            </TooltipTrigger>
+                            <TooltipContent>{tx.signature}</TooltipContent>
+                          </Tooltip>
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                            <CopyButton value={tx.signature} />
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-mono text-muted-foreground">
+                        {parseInt(tx.slot).toLocaleString()}
+                      </TableCell>
+                      <TableCell>
+                        <StatusBadge success={tx.success} />
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-muted-foreground">
+                        {tx.fee ? (parseInt(tx.fee) / 1e9).toFixed(9) : "0.000000000"}
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground whitespace-nowrap">
+                        {tx.blockTime ? new Date(tx.blockTime).toLocaleString() : "-"}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          <PaginationControls
+            page={data.pagination.page}
+            totalPages={data.pagination.totalPages}
+            total={data.pagination.total}
+            basePath="/transactions"
+          />
+        </>
+      )}
     </div>
   );
 }
 
 export default function TransactionsPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="text-center py-20 text-slate-500">Loading...</div>
-      }
-    >
+    <Suspense fallback={<TableSkeleton />}>
       <TransactionsList />
     </Suspense>
   );

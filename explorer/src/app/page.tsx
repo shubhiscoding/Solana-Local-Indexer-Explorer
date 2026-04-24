@@ -2,7 +2,26 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { CopyButton } from "@/components/copy-button";
+import { StatCard } from "@/components/stat-card";
+import { StatusBadge } from "@/components/status-badge";
+import { StatCardsSkeleton, TableSkeleton } from "@/components/loading-skeleton";
 import type { StatsResponse } from "@/lib/types";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Activity, ArrowRight, CheckCircle2, Layers, XCircle, Zap } from "lucide-react";
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<StatsResponse | null>(null);
@@ -16,7 +35,7 @@ export default function DashboardPage() {
     } catch (err) {
       console.error("Failed to fetch stats:", err);
     } finally {
-      setLoading(false);
+      if (loading) setLoading(false);
     }
   };
 
@@ -26,102 +45,152 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, []);
 
-  if (loading)
-    return <div className="text-center py-20 text-slate-500">Loading...</div>;
-  if (!stats)
-    return (
-      <div className="text-center py-20 text-red-400">Failed to load data</div>
-    );
-
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-slate-100 mb-6">Dashboard</h1>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard
-          label="Total Transactions"
-          value={stats.totalTransactions.toLocaleString()}
-        />
-        <StatCard
-          label="Failed Transactions"
-          value={stats.totalFailed.toLocaleString()}
-        />
-        <StatCard label="Success Rate" value={`${stats.successRate}%`} />
-        <StatCard label="Latest Slot" value={stats.latestSlot} />
+    <div className="space-y-8 animate-in-fade">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-heading font-bold tracking-tight">Overview</h1>
+          <p className="text-muted-foreground mt-1">
+            Real-time insights into the Solana local test validator
+          </p>
+        </div>
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary border border-primary/20 rounded-full text-sm font-medium w-fit">
+          <span className="relative flex h-2.5 w-2.5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary"></span>
+          </span>
+          Live updating
+        </div>
       </div>
 
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-lg font-semibold text-slate-200">
-          Recent Transactions
-        </h2>
-        <Link
-          href="/transactions"
-          className="text-sm text-emerald-400 hover:underline"
-        >
-          View all
-        </Link>
-      </div>
+      {loading ? (
+        <StatCardsSkeleton />
+      ) : stats ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard
+            label="Total Transactions"
+            value={stats.totalTransactions.toLocaleString()}
+            icon={Zap}
+          />
+          <StatCard
+            label="Failed Transactions"
+            value={stats.totalFailed.toLocaleString()}
+            icon={XCircle}
+          />
+          <StatCard
+            label="Success Rate"
+            value={`${stats.successRate}%`}
+            icon={CheckCircle2}
+            trend={{
+              value: "Good",
+              isPositive: stats.successRate > 80,
+            }}
+          />
+          <StatCard
+            label="Latest Slot"
+            value={stats.latestSlot.toLocaleString()}
+            icon={Layers}
+          />
+        </div>
+      ) : (
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive">
+          Failed to load stats data. Is the backend running?
+        </div>
+      )}
 
-      <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-900 text-slate-400 text-left">
-            <tr>
-              <th className="px-4 py-3">Signature</th>
-              <th className="px-4 py-3">Slot</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">Fee (lamports)</th>
-              <th className="px-4 py-3">Time</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-700">
-            {stats.recentTransactions.map((tx) => (
-              <tr key={tx.id} className="hover:bg-slate-700/50">
-                <td className="px-4 py-3">
-                  <Link
-                    href={`/transactions/${tx.signature}`}
-                    className="text-emerald-400 hover:underline font-mono text-xs"
-                  >
-                    {tx.signature.slice(0, 20)}...
-                  </Link>
-                </td>
-                <td className="px-4 py-3 font-mono text-slate-300">{tx.slot}</td>
-                <td className="px-4 py-3">
-                  <span
-                    className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
-                      tx.success
-                        ? "bg-emerald-900/50 text-emerald-400"
-                        : "bg-red-900/50 text-red-400"
-                    }`}
-                  >
-                    {tx.success ? "Success" : "Failed"}
-                  </span>
-                </td>
-                <td className="px-4 py-3 font-mono text-slate-300">{tx.fee ?? "-"}</td>
-                <td className="px-4 py-3 text-slate-400">
-                  {tx.blockTime
-                    ? new Date(tx.blockTime).toLocaleString()
-                    : "-"}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Activity className="h-5 w-5 text-muted-foreground" />
+            <h2 className="text-xl font-heading font-semibold tracking-tight">
+              Recent Transactions
+            </h2>
+          </div>
+          <Button asChild variant="ghost" className="group">
+            <Link href="/transactions">
+              View all
+              <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </Link>
+          </Button>
+        </div>
+
+        {loading ? (
+          <TableSkeleton />
+        ) : stats ? (
+          <div className="rounded-md border animate-in-slide-up bg-card overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="w-[300px]">Signature</TableHead>
+                  <TableHead>Slot</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Fee (SOL)</TableHead>
+                  <TableHead className="text-right">Time</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {stats.recentTransactions.map((tx) => (
+                  <TableRow key={tx.id} className="group">
+                    <TableCell className="font-mono">
+                      <div className="flex items-center gap-2">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Link
+                              href={`/transactions/${tx.signature}`}
+                              className="text-primary hover:underline"
+                            >
+                              {tx.signature.slice(0, 16)}...
+                            </Link>
+                          </TooltipTrigger>
+                          <TooltipContent>{tx.signature}</TooltipContent>
+                        </Tooltip>
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                          <CopyButton value={tx.signature} />
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-mono text-muted-foreground">
+                      {parseInt(tx.slot).toLocaleString()}
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge success={tx.success} />
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-muted-foreground">
+                      {tx.fee ? (parseInt(tx.fee) / 1e9).toFixed(9) : "0.000000000"}
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground">
+                      {tx.blockTime ? (
+                        <Tooltip>
+                          <TooltipTrigger className="cursor-help">
+                            {getRelativeTime(tx.blockTime)}
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {new Date(tx.blockTime).toLocaleString()}
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        "-"
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        ) : null}
       </div>
     </div>
   );
 }
 
-function StatCard({
-  label,
-  value,
-}: {
-  label: string;
-  value: string | number;
-}) {
-  return (
-    <div className="bg-slate-800 rounded-lg border border-slate-700 p-5">
-      <p className="text-sm text-slate-400 mb-1">{label}</p>
-      <p className="text-2xl font-bold text-slate-100">{value}</p>
-    </div>
-  );
+function getRelativeTime(dateStr: string) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const seconds = Math.floor(diff / 1000);
+  if (seconds < 60) return `${seconds}s ago`;
+  const mins = Math.floor(seconds / 60);
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
 }

@@ -62,6 +62,9 @@ docker compose logs -f indexer      # specific service
 # Rebuild after code changes
 docker compose up --build -d
 
+# Regenerate Prisma client for local explorer dev
+cd explorer && pnpm db:generate
+
 # Stop everything
 docker compose down
 

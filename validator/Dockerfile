@@ -1,4 +1,4 @@
-FROM rust:1.76 AS builder
+FROM --platform=linux/amd64 rust:1.76 AS builder
 
 WORKDIR /build
 
@@ -24,7 +24,7 @@ RUN cargo build --release --package yellowstone-grpc-geyser
 # -----------------------------
 # FINAL RUNTIME IMAGE
 # -----------------------------
-FROM debian:bookworm-slim
+FROM --platform=linux/amd64 debian:bookworm-slim
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y \

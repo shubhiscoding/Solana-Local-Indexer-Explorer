@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import Link from "next/link";
+import { Geist, Geist_Mono, Inter } from "next/font/google";
+import { ThemeProvider } from "@/components/theme-provider";
+import { Navbar } from "@/components/navbar";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -13,9 +15,14 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
   title: "Solana Local Explorer",
-  description: "Self-hosted Solana blockchain explorer",
+  description: "Production-grade self-hosted Solana blockchain explorer",
 };
 
 export default function RootLayout({
@@ -24,26 +31,24 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="bg-slate-950">
+    <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-slate-950 text-slate-200`}
+        suppressHydrationWarning
+        className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} antialiased min-h-screen flex flex-col`}
       >
-        <nav className="bg-slate-950 text-white border-b border-slate-800">
-          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-8">
-            <Link href="/" className="text-lg font-bold tracking-tight text-emerald-400">
-              Solana Local Explorer
-            </Link>
-            <div className="flex gap-6 text-sm">
-              <Link href="/" className="text-slate-300 hover:text-white">
-                Dashboard
-              </Link>
-              <Link href="/transactions" className="text-slate-300 hover:text-white">
-                Transactions
-              </Link>
-            </div>
-          </div>
-        </nav>
-        <main className="max-w-7xl mx-auto px-4 py-8">{children}</main>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <TooltipProvider>
+            <Navbar />
+            <main className="flex-1 w-full max-w-7xl mx-auto px-4 py-8 animate-in-fade">
+              {children}
+            </main>
+          </TooltipProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
