@@ -5,6 +5,7 @@ import Link from "next/link";
 import { CopyButton } from "@/components/copy-button";
 import { StatCard } from "@/components/stat-card";
 import { StatusBadge } from "@/components/status-badge";
+import { TransactionChart } from "@/components/transaction-chart";
 import { StatCardsSkeleton, TableSkeleton } from "@/components/loading-skeleton";
 import type { StatsResponse } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -97,6 +98,8 @@ export default function DashboardPage() {
           Failed to load stats data. Is the backend running?
         </div>
       )}
+
+      <TransactionChart />
 
       <div className="space-y-4">
         <div className="flex items-center justify-between">
