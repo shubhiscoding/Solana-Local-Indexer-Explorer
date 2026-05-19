@@ -22,7 +22,7 @@ export async function GET(
     return NextResponse.json({ error: "Account not found" }, { status: 404 });
   }
 
-  const [balances, totalBalances] = await Promise.all([
+  const [balances, totalBalances, latest, stats] = await Promise.all([
     (prisma.accountBalance as any).findMany({
       where: { accountAddress: address },
       orderBy: { slot: "desc" },
@@ -41,17 +41,21 @@ export async function GET(
     (prisma.accountBalance as any).count({
       where: { accountAddress: address },
     }),
+    (prisma.accountBalance as any).findFirst({
+      where: { accountAddress: address },
+      orderBy: { slot: "desc" },
+      select: { postBalance: true },
+    }),
+    (prisma.accountBalance as any).aggregate({
+      where: { accountAddress: address },
+      _sum: {
+        balanceChange: true,
+      },
+      _count: true,
+    }),
   ]);
 
-  const stats = await (prisma.accountBalance as any).aggregate({
-    where: { accountAddress: address },
-    _sum: {
-      balanceChange: true,
-    },
-    _count: true,
-  });
-
-  const latestBalance = balances[0]?.postBalance || BigInt(0);
+  const latestBalance = latest?.postBalance ?? BigInt(0);
 
   return NextResponse.json(
     serializeBigInts({
