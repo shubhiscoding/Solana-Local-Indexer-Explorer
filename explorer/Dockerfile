@@ -7,6 +7,7 @@ RUN corepack enable && apt-get update && apt-get install -y openssl && rm -rf /v
 FROM base AS deps
 WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
+COPY prisma ./prisma
 RUN --mount=type=cache,id=pnpm-explorer,target=/pnpm/store \
     pnpm install --frozen-lockfile --store-dir /pnpm/store
 
