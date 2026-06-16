@@ -18,12 +18,9 @@ export function PaginationControls({
   basePath,
 }: PaginationControlsProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   const goToPage = (p: number) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("page", String(p));
-    router.push(`${basePath}?${params.toString()}`);
+    router.push(`${basePath}?page=${p}`);
   };
 
   return (
