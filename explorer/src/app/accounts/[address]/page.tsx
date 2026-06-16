@@ -16,6 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ArrowLeft, Clock, History, Link as LinkIcon, Wallet } from "lucide-react";
 
 function AccountDetail() {
@@ -23,6 +24,11 @@ function AccountDetail() {
   const searchParams = useSearchParams();
   const address = params.address as string;
   const page = parseInt(searchParams.get("page") || "1", 10);
+  const field = searchParams.get("field") || "postBalance";
+  const amount = searchParams.get("amount") || "";
+  const minAmount = searchParams.get("minAmount") || "";
+  const maxAmount = searchParams.get("maxAmount") || "";
+  const unit = searchParams.get("unit") === "lamports" ? "lamports" : "sol";
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [data, setData] = useState<any>(null);
@@ -31,7 +37,19 @@ function AccountDetail() {
 
   const fetchData = useCallback(() => {
     setLoading(true);
-    fetch(`/api/accounts/${address}?page=${page}&limit=20`)
+    const params = new URLSearchParams();
+    params.set("page", String(page));
+    params.set("limit", "20");
+    if (field) params.set("field", field);
+    if (unit) params.set("unit", unit);
+    if (amount.trim()) {
+      params.set("amount", amount.trim());
+    } else {
+      if (minAmount.trim()) params.set("minAmount", minAmount.trim());
+      if (maxAmount.trim()) params.set("maxAmount", maxAmount.trim());
+    }
+
+    fetch(`/api/accounts/${address}?${params.toString()}`)
       .then((res) => {
         if (!res.ok) throw new Error("Account not found");
         return res.json();
@@ -39,7 +57,7 @@ function AccountDetail() {
       .then(setData)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [address, page]);
+  }, [address, page, field, amount, minAmount, maxAmount, unit]);
 
   useEffect(() => {
     fetchData();
@@ -134,6 +152,69 @@ function AccountDetail() {
             Balance History
           </h2>
         </div>
+        <form className="rounded-md border bg-card p-4">
+          <div className="grid gap-3 md:grid-cols-5">
+            <label className="space-y-1 text-sm">
+              <span className="text-muted-foreground">Field</span>
+              <select
+                name="field"
+                defaultValue={field}
+                className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                <option value="postBalance">Post Balance</option>
+                <option value="preBalance">Pre Balance</option>
+                <option value="balanceChange">Balance Change</option>
+              </select>
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="text-muted-foreground">Unit</span>
+              <select
+                name="unit"
+                defaultValue={unit}
+                className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                <option value="sol">SOL</option>
+                <option value="lamports">Lamports</option>
+              </select>
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="text-muted-foreground">Exact Amount</span>
+              <Input
+                name="amount"
+                type="number"
+                step="any"
+                defaultValue={amount}
+                placeholder="e.g. 1.5"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="text-muted-foreground">Min Amount</span>
+              <Input
+                name="minAmount"
+                type="number"
+                step="any"
+                defaultValue={minAmount}
+                placeholder="e.g. 0.1"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="text-muted-foreground">Max Amount</span>
+              <Input
+                name="maxAmount"
+                type="number"
+                step="any"
+                defaultValue={maxAmount}
+                placeholder="e.g. 10"
+              />
+            </label>
+          </div>
+          <div className="mt-3 flex gap-2">
+            <Button type="submit">Apply Filter</Button>
+            <Button variant="outline" asChild>
+              <Link href={`/accounts/${address}`}>Clear</Link>
+            </Button>
+          </div>
+        </form>
 
         <div className="rounded-md border animate-in-slide-up bg-card overflow-hidden">
           <Table>
