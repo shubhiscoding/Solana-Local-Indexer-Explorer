@@ -6,10 +6,16 @@ import Link from "next/link";
 import { CopyButton } from "@/components/copy-button";
 import { DetailCardSkeleton, TableSkeleton } from "@/components/loading-skeleton";
 import { PaginationControls } from "@/components/pagination-controls";
+import { DataTableShell, SectionHeader } from "@/components/data-table";
+import {
+  PageShell,
+  FadeUp,
+  MotionTableBody,
+  MotionTableRow,
+} from "@/components/motion";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
-  TableBody,
   TableCell,
   TableHead,
   TableHeader,
@@ -17,7 +23,17 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Clock, History, Link as LinkIcon, Wallet } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, Clock, Filter, History, Link as LinkIcon, Wallet } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 function AccountDetail() {
   const params = useParams();
@@ -30,10 +46,18 @@ function AccountDetail() {
   const maxAmount = searchParams.get("maxAmount") || "";
   const unit = searchParams.get("unit") === "lamports" ? "lamports" : "sol";
 
+  const [fieldValue, setFieldValue] = useState(field);
+  const [unitValue, setUnitValue] = useState(unit);
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setFieldValue(field);
+    setUnitValue(unit);
+  }, [field, unit]);
 
   const fetchData = useCallback(() => {
     setLoading(true);
@@ -70,168 +94,225 @@ function AccountDetail() {
         <TableSkeleton />
       </div>
     );
-    
+
   if (error)
     return (
-      <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-12 text-center text-destructive animate-in-fade">
-        <Wallet className="h-8 w-8 mx-auto mb-4 opacity-50" />
-        <h3 className="font-semibold text-lg">{error}</h3>
-        <p className="opacity-80 mt-2">Checking an account requires it to have been involved in a transaction during indexing.</p>
-        <Button variant="outline" asChild className="mt-4">
-          <Link href="/">Back to Dashboard</Link>
-        </Button>
-      </div>
+      <FadeUp>
+        <div className="rounded-xl border border-destructive/40 bg-destructive/8 p-12 text-center text-destructive">
+          <Wallet className="h-8 w-8 mx-auto mb-4 opacity-50" />
+          <h3 className="font-heading font-semibold text-lg">{error}</h3>
+          <p className="opacity-80 mt-2 text-sm max-w-md mx-auto">
+            Checking an account requires it to have been involved in a transaction
+            during indexing.
+          </p>
+          <Button variant="outline" asChild className="mt-4" size="sm">
+            <Link href="/">Back to Dashboard</Link>
+          </Button>
+        </div>
+      </FadeUp>
     );
 
   return (
-    <div className="space-y-6 animate-in-fade">
-      <div className="flex items-center gap-4">
-        <Button variant="outline" size="icon" asChild className="shrink-0">
-          <Link href="/">
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
-        <h1 className="text-2xl md:text-3xl font-heading font-bold tracking-tight">
-          Account Profile
-        </h1>
-      </div>
-
-      <Card className="animate-in-slide-up shadow-sm bg-gradient-to-br from-card to-card/50 border-primary/10">
-        <CardContent className="p-6 sm:p-8">
-          <div className="flex flex-col md:flex-row justify-between gap-6 md:items-center">
-            
-            <div className="space-y-1">
-              <span className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
-                <Wallet className="h-4 w-4" />
-                Address
-              </span>
-              <div className="flex items-center gap-3">
-                <span className="font-mono text-lg md:text-xl font-bold tracking-tight break-all">
-                  {data.account.address}
-                </span>
-                <CopyButton value={data.account.address} />
-              </div>
-            </div>
-
-            <div className="md:text-right space-y-1 bg-primary/5 px-6 py-4 rounded-xl border border-primary/10">
-              <span className="text-sm font-medium text-muted-foreground">Current Balance</span>
-              <div className="text-2xl md:text-3xl font-heading font-bold text-primary">
-                {(parseInt(data.latestBalance) / 1e9).toFixed(9)} <span className="text-lg text-primary/70">SOL</span>
-              </div>
-            </div>
-
+    <PageShell className="space-y-6">
+      <FadeUp>
+        <div className="flex items-center gap-4">
+          <Button variant="outline" size="icon-sm" asChild className="shrink-0 rounded-xl">
+            <Link href="/">
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+          </Button>
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary mb-1">
+              Account
+            </p>
+            <h1 className="font-heading text-2xl md:text-3xl font-bold tracking-tight text-gradient">
+              Account Profile
+            </h1>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Balance history and transaction involvement
+            </p>
           </div>
-
-          <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-6 pt-6 border-t border-border/50">
-            <div className="space-y-1">
-              <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-                <LinkIcon className="h-3.5 w-3.5" /> Total Transactions
-              </span>
-              <p className="font-mono text-base">{data.totalTransactions.toLocaleString()}</p>
-            </div>
-            <div className="space-y-1">
-              <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-                <Clock className="h-3.5 w-3.5" /> First Seen
-              </span>
-              <p className="text-sm">{new Date(data.account.firstSeen).toLocaleString()}</p>
-            </div>
-            <div className="space-y-1">
-              <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-                <Clock className="h-3.5 w-3.5" /> Last Seen
-              </span>
-              <p className="text-sm">{new Date(data.account.lastSeen).toLocaleString()}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="pt-4 space-y-4">
-        <div className="flex items-center gap-2">
-          <History className="h-5 w-5 text-muted-foreground" />
-          <h2 className="text-xl font-heading font-semibold tracking-tight">
-            Balance History
-          </h2>
         </div>
-        <form className="rounded-md border bg-card p-4">
-          <div className="grid gap-3 md:grid-cols-5">
-            <label className="space-y-1 text-sm">
-              <span className="text-muted-foreground">Field</span>
-              <select
-                name="field"
-                defaultValue={field}
-                className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              >
-                <option value="postBalance">Post Balance</option>
-                <option value="preBalance">Pre Balance</option>
-                <option value="balanceChange">Balance Change</option>
-              </select>
-            </label>
-            <label className="space-y-1 text-sm">
-              <span className="text-muted-foreground">Unit</span>
-              <select
-                name="unit"
-                defaultValue={unit}
-                className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              >
-                <option value="sol">SOL</option>
-                <option value="lamports">Lamports</option>
-              </select>
-            </label>
-            <label className="space-y-1 text-sm">
-              <span className="text-muted-foreground">Exact Amount</span>
-              <Input
-                name="amount"
-                type="number"
-                step="any"
-                defaultValue={amount}
-                placeholder="e.g. 1.5"
-              />
-            </label>
-            <label className="space-y-1 text-sm">
-              <span className="text-muted-foreground">Min Amount</span>
-              <Input
-                name="minAmount"
-                type="number"
-                step="any"
-                defaultValue={minAmount}
-                placeholder="e.g. 0.1"
-              />
-            </label>
-            <label className="space-y-1 text-sm">
-              <span className="text-muted-foreground">Max Amount</span>
-              <Input
-                name="maxAmount"
-                type="number"
-                step="any"
-                defaultValue={maxAmount}
-                placeholder="e.g. 10"
-              />
-            </label>
-          </div>
-          <div className="mt-3 flex gap-2">
-            <Button type="submit">Apply Filter</Button>
-            <Button variant="outline" asChild>
-              <Link href={`/accounts/${address}`}>Clear</Link>
-            </Button>
-          </div>
-        </form>
+      </FadeUp>
 
-        <div className="rounded-md border animate-in-slide-up bg-card overflow-hidden">
+      <FadeUp delay={0.05}>
+        <Card className="overflow-hidden glass-strong border-gradient panel-glow">
+          <CardContent className="p-6 sm:p-8">
+            <div className="flex flex-col md:flex-row justify-between gap-6 md:items-center">
+              <div className="space-y-2 min-w-0">
+                <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <Wallet className="h-3.5 w-3.5" />
+                  Address
+                </span>
+                <div className="flex items-start gap-2">
+                  <span className="font-mono text-base md:text-lg font-semibold tracking-tight break-all">
+                    {data.account.address}
+                  </span>
+                  <CopyButton value={data.account.address} />
+                </div>
+              </div>
+
+              <div className="shrink-0 rounded-2xl border border-primary/25 bg-primary/10 px-6 py-4 md:text-right panel-glow">
+                <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Current Balance
+                </span>
+                <div className="font-heading text-2xl md:text-3xl font-bold text-primary tabular-nums mt-1">
+                  {(parseInt(data.latestBalance) / 1e9).toFixed(9)}{" "}
+                  <span className="text-base font-semibold text-primary/70">SOL</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-6 pt-6 border-t border-border/50">
+              <div className="space-y-1">
+                <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                  <LinkIcon className="h-3.5 w-3.5" /> Total Transactions
+                </span>
+                <p className="font-mono text-base tabular-nums">
+                  {data.totalTransactions.toLocaleString()}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5" /> First Seen
+                </span>
+                <p className="text-sm">
+                  {new Date(data.account.firstSeen).toLocaleString()}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5" /> Last Seen
+                </span>
+                <p className="text-sm">
+                  {new Date(data.account.lastSeen).toLocaleString()}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </FadeUp>
+
+      <div className="space-y-4">
+        <SectionHeader icon={History} title="Balance History" />
+
+        <FadeUp delay={0.12}>
+          <form className="rounded-2xl border border-border/40 glass p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Filter balances</span>
+            </div>
+            <input type="hidden" name="field" value={fieldValue} />
+            <input type="hidden" name="unit" value={unitValue} />
+            <div className="grid gap-4 md:grid-cols-5">
+              <div className="space-y-2">
+                <Label htmlFor="field-select" className="text-xs text-muted-foreground">
+                  Field
+                </Label>
+                <Select value={fieldValue} onValueChange={setFieldValue}>
+                  <SelectTrigger id="field-select" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="postBalance">Post Balance</SelectItem>
+                    <SelectItem value="preBalance">Pre Balance</SelectItem>
+                    <SelectItem value="balanceChange">Balance Change</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="unit-select" className="text-xs text-muted-foreground">
+                  Unit
+                </Label>
+                <Select value={unitValue} onValueChange={setUnitValue}>
+                  <SelectTrigger id="unit-select" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sol">SOL</SelectItem>
+                    <SelectItem value="lamports">Lamports</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="amount" className="text-xs text-muted-foreground">
+                  Exact Amount
+                </Label>
+                <Input
+                  id="amount"
+                  name="amount"
+                  type="number"
+                  step="any"
+                  defaultValue={amount}
+                  placeholder="e.g. 1.5"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="minAmount" className="text-xs text-muted-foreground">
+                  Min Amount
+                </Label>
+                <Input
+                  id="minAmount"
+                  name="minAmount"
+                  type="number"
+                  step="any"
+                  defaultValue={minAmount}
+                  placeholder="e.g. 0.1"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="maxAmount" className="text-xs text-muted-foreground">
+                  Max Amount
+                </Label>
+                <Input
+                  id="maxAmount"
+                  name="maxAmount"
+                  type="number"
+                  step="any"
+                  defaultValue={maxAmount}
+                  placeholder="e.g. 10"
+                />
+              </div>
+            </div>
+            <div className="mt-4 flex gap-2">
+              <Button type="submit" size="sm">
+                Apply Filter
+              </Button>
+              <Button variant="outline" size="sm" asChild>
+                <Link href={`/accounts/${address}`}>Clear</Link>
+              </Button>
+            </div>
+          </form>
+        </FadeUp>
+
+        <DataTableShell>
           <Table>
             <TableHeader>
-              <TableRow className="hover:bg-transparent bg-muted/40">
-                <TableHead>Transaction</TableHead>
-                <TableHead>Slot</TableHead>
-                <TableHead className="text-right">Pre Balance (SOL)</TableHead>
-                <TableHead className="text-right">Post Balance (SOL)</TableHead>
-                <TableHead className="text-right">Change</TableHead>
-                <TableHead className="text-right">Time</TableHead>
+              <TableRow className="hover:bg-transparent bg-muted/20 border-border/50">
+                <TableHead className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Transaction
+                </TableHead>
+                <TableHead className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Slot
+                </TableHead>
+                <TableHead className="text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Pre Balance (SOL)
+                </TableHead>
+                <TableHead className="text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Post Balance (SOL)
+                </TableHead>
+                <TableHead className="text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Change
+                </TableHead>
+                <TableHead className="text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Time
+                </TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <MotionTableBody key={page}>
               {data.balances.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center">
+                  <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                     No balance history found.
                   </TableCell>
                 </TableRow>
@@ -241,50 +322,57 @@ function AccountDetail() {
                   const change = parseInt(bal.balanceChange);
                   const isPositive = change > 0;
                   const isNegative = change < 0;
-                  
+
                   return (
-                    <TableRow key={bal.id} className="hover:bg-muted/30">
+                    <MotionTableRow
+                      key={bal.id}
+                      className="border-border/30 hover:bg-muted/25 transition-colors"
+                    >
                       <TableCell className="font-mono">
                         <Link
                           href={`/transactions/${bal.transaction.signature}`}
-                          className="text-primary hover:underline hover:text-primary/80 transition-colors"
+                          className="text-primary hover:underline underline-offset-2"
                         >
                           {bal.transaction.signature.slice(0, 16)}...
                         </Link>
                       </TableCell>
-                      <TableCell className="font-mono text-muted-foreground">
+                      <TableCell className="font-mono text-sm tabular-nums text-muted-foreground">
                         {parseInt(bal.slot).toLocaleString()}
                       </TableCell>
-                      <TableCell className="text-right font-mono text-muted-foreground">
+                      <TableCell className="text-right font-mono text-sm tabular-nums text-muted-foreground">
                         {(parseInt(bal.preBalance) / 1e9).toFixed(9)}
                       </TableCell>
-                      <TableCell className="text-right font-mono text-foreground">
+                      <TableCell className="text-right font-mono text-sm tabular-nums">
                         {(parseInt(bal.postBalance) / 1e9).toFixed(9)}
                       </TableCell>
                       <TableCell className="text-right">
-                        <span
-                          className={`font-mono text-xs px-2 py-1 rounded-md ${
-                            isPositive
-                              ? "bg-emerald-500/10 text-emerald-500"
-                              : isNegative
-                              ? "bg-red-500/10 text-red-500"
-                              : "text-muted-foreground"
-                          }`}
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "font-mono text-xs tabular-nums",
+                            isPositive &&
+                              "border-primary/25 bg-primary/10 text-primary",
+                            isNegative &&
+                              "border-destructive/25 bg-destructive/10 text-destructive",
+                            !isPositive &&
+                              !isNegative &&
+                              "text-muted-foreground"
+                          )}
                         >
                           {isPositive ? "+" : ""}
                           {(change / 1e9).toFixed(9)}
-                        </span>
+                        </Badge>
                       </TableCell>
-                      <TableCell className="text-right text-muted-foreground whitespace-nowrap">
+                      <TableCell className="text-right text-sm text-muted-foreground whitespace-nowrap">
                         {bal.blockTime ? new Date(bal.blockTime).toLocaleString() : "-"}
                       </TableCell>
-                    </TableRow>
+                    </MotionTableRow>
                   );
                 })
               )}
-            </TableBody>
+            </MotionTableBody>
           </Table>
-        </div>
+        </DataTableShell>
 
         <PaginationControls
           page={data.pagination.page}
@@ -293,13 +381,20 @@ function AccountDetail() {
           basePath={`/accounts/${address}`}
         />
       </div>
-    </div>
+    </PageShell>
   );
 }
 
 export default function AccountPage() {
   return (
-    <Suspense fallback={<div className="space-y-6"><DetailCardSkeleton /><TableSkeleton /></div>}>
+    <Suspense
+      fallback={
+        <div className="space-y-6">
+          <DetailCardSkeleton />
+          <TableSkeleton />
+        </div>
+      }
+    >
       <AccountDetail />
     </Suspense>
   );

@@ -7,11 +7,21 @@ import { StatCard } from "@/components/stat-card";
 import { StatusBadge } from "@/components/status-badge";
 import { TransactionChart } from "@/components/transaction-chart";
 import { StatCardsSkeleton, TableSkeleton } from "@/components/loading-skeleton";
+import { PageHeader } from "@/components/page-header";
+import { DataTableShell, SectionHeader } from "@/components/data-table";
+import {
+  PageShell,
+  FadeUp,
+  StaggerGrid,
+  StaggerItem,
+  MotionTableBody,
+  MotionTableRow,
+} from "@/components/motion";
 import type { StatsResponse } from "@/lib/types";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
-  TableBody,
   TableCell,
   TableHead,
   TableHeader,
@@ -47,121 +57,148 @@ export default function DashboardPage() {
   }, []);
 
   return (
-    <div className="space-y-8 animate-in-fade">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-heading font-bold tracking-tight">Overview</h1>
-          <p className="text-muted-foreground mt-1">
-            Real-time insights into the Solana local test validator
-          </p>
-        </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary border border-primary/20 rounded-full text-sm font-medium w-fit">
-          <span className="relative flex h-2.5 w-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary"></span>
-          </span>
-          Live updating
-        </div>
-      </div>
+    <PageShell>
+      <PageHeader
+        eyebrow="Dashboard"
+        title="Overview"
+        description="Real-time insights into the Solana local test validator"
+        action={
+          <Badge
+            variant="outline"
+            className="gap-2 rounded-full border-primary/30 bg-primary/10 px-3.5 py-1.5 text-primary font-medium panel-glow"
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-70" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+            </span>
+            Live
+          </Badge>
+        }
+      />
 
       {loading ? (
         <StatCardsSkeleton />
       ) : stats ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard
-            label="Total Transactions"
-            value={stats.totalTransactions.toLocaleString()}
-            icon={Zap}
-          />
-          <StatCard
-            label="Failed Transactions"
-            value={stats.totalFailed.toLocaleString()}
-            icon={XCircle}
-          />
-          <StatCard
-            label="Success Rate"
-            value={`${stats.successRate}%`}
-            icon={CheckCircle2}
-            trend={{
-              value: "Good",
-              isPositive: stats.successRate > 80,
-            }}
-          />
-          <StatCard
-            label="Latest Slot"
-            value={stats.latestSlot.toLocaleString()}
-            icon={Layers}
-          />
-        </div>
+        <StaggerGrid className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StaggerItem>
+            <StatCard
+              label="Total Transactions"
+              value={stats.totalTransactions.toLocaleString()}
+              icon={Zap}
+            />
+          </StaggerItem>
+          <StaggerItem>
+            <StatCard
+              label="Failed Transactions"
+              value={stats.totalFailed.toLocaleString()}
+              icon={XCircle}
+            />
+          </StaggerItem>
+          <StaggerItem>
+            <StatCard
+              label="Success Rate"
+              value={`${stats.successRate}%`}
+              icon={CheckCircle2}
+              trend={{ value: "Good", isPositive: stats.successRate > 80 }}
+            />
+          </StaggerItem>
+          <StaggerItem>
+            <StatCard
+              label="Latest Slot"
+              value={stats.latestSlot.toLocaleString()}
+              icon={Layers}
+            />
+          </StaggerItem>
+        </StaggerGrid>
       ) : (
-        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive">
-          Failed to load stats data. Is the backend running?
-        </div>
+        <FadeUp>
+          <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-5 text-destructive glass">
+            Failed to load stats data. Is the backend running?
+          </div>
+        </FadeUp>
       )}
 
       <TransactionChart />
 
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Activity className="h-5 w-5 text-muted-foreground" />
-            <h2 className="text-xl font-heading font-semibold tracking-tight">
-              Recent Transactions
-            </h2>
-          </div>
-          <Button asChild variant="ghost" className="group">
-            <Link href="/transactions">
-              View all
-              <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-            </Link>
-          </Button>
-        </div>
+        <SectionHeader
+          icon={Activity}
+          title="Recent Transactions"
+          action={
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+              className="group gap-1.5 rounded-xl text-muted-foreground hover:text-primary"
+            >
+              <Link href="/transactions">
+                View all
+                <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+              </Link>
+            </Button>
+          }
+        />
 
         {loading ? (
           <TableSkeleton />
         ) : stats ? (
-          <div className="rounded-md border animate-in-slide-up bg-card overflow-hidden">
+          <DataTableShell>
             <Table>
               <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="w-[300px]">Signature</TableHead>
-                  <TableHead>Slot</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Fee (SOL)</TableHead>
-                  <TableHead className="text-right">Time</TableHead>
+                <TableRow className="hover:bg-transparent border-border/40 bg-muted/20">
+                  <TableHead className="w-[300px] text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    Signature
+                  </TableHead>
+                  <TableHead className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    Slot
+                  </TableHead>
+                  <TableHead className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    Status
+                  </TableHead>
+                  <TableHead className="text-right text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    Fee (SOL)
+                  </TableHead>
+                  <TableHead className="text-right text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    Time
+                  </TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>
+              <MotionTableBody>
                 {stats.recentTransactions.map((tx) => (
-                  <TableRow key={tx.id} className="group">
+                  <MotionTableRow
+                    key={tx.id}
+                    className="group border-border/30 hover:bg-muted/25 transition-colors"
+                  >
                     <TableCell className="font-mono">
                       <div className="flex items-center gap-2">
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Link
                               href={`/transactions/${tx.signature}`}
-                              className="text-primary hover:underline"
+                              className="text-primary hover:underline underline-offset-4 transition-colors"
                             >
                               {tx.signature.slice(0, 16)}...
                             </Link>
                           </TooltipTrigger>
-                          <TooltipContent>{tx.signature}</TooltipContent>
+                          <TooltipContent className="font-mono text-xs max-w-sm break-all">
+                            {tx.signature}
+                          </TooltipContent>
                         </Tooltip>
-                        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                           <CopyButton value={tx.signature} />
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="font-mono text-muted-foreground">
+                    <TableCell className="font-mono text-sm tabular-nums text-muted-foreground">
                       {parseInt(tx.slot).toLocaleString()}
                     </TableCell>
                     <TableCell>
                       <StatusBadge success={tx.success} />
                     </TableCell>
-                    <TableCell className="text-right font-mono text-muted-foreground">
+                    <TableCell className="text-right font-mono text-sm tabular-nums text-muted-foreground">
                       {tx.fee ? (parseInt(tx.fee) / 1e9).toFixed(9) : "0.000000000"}
                     </TableCell>
-                    <TableCell className="text-right text-muted-foreground">
+                    <TableCell className="text-right text-sm text-muted-foreground">
                       {tx.blockTime ? (
                         <Tooltip>
                           <TooltipTrigger className="cursor-help">
@@ -175,14 +212,14 @@ export default function DashboardPage() {
                         "-"
                       )}
                     </TableCell>
-                  </TableRow>
+                  </MotionTableRow>
                 ))}
-              </TableBody>
+              </MotionTableBody>
             </Table>
-          </div>
+          </DataTableShell>
         ) : null}
       </div>
-    </div>
+    </PageShell>
   );
 }
 
