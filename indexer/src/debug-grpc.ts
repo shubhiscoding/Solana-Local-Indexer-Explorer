@@ -15,8 +15,8 @@ if (!endpoint.startsWith("http://") && !endpoint.startsWith("https://")) {
   endpoint = `http://${endpoint}`;
 }
 
-console.log("📡 Connecting to Yellowstone gRPC:", endpoint);
-console.log("📝 Logging responses to:", LOG_FILE);
+console.log("Connecting to Yellowstone gRPC:", endpoint);
+console.log("Logging responses to:", LOG_FILE);
 
 const client = new Client(
   endpoint,
@@ -65,8 +65,8 @@ async function main() {
       });
     });
 
-    console.log("✅ Subscribed to slots and transactions");
-    console.log("📊 Waiting for data... (Press Ctrl+C to stop)\n");
+    console.log("Subscribed to slots and transactions");
+    console.log("Waiting for data... (Press Ctrl+C to stop)\n");
 
     let messageCount = 0;
     const logStream = fs.createWriteStream(LOG_FILE, { flags: "a" });
@@ -108,7 +108,7 @@ async function main() {
     });
 
     stream.on("error", (err) => {
-      console.error("❌ gRPC Stream Error:", err);
+      console.error("gRPC Stream Error:", err);
       logStream.write(`\nERROR: ${JSON.stringify(err, null, 2)}\n\n`);
     });
 
@@ -125,13 +125,13 @@ async function main() {
     // Handle graceful shutdown
     process.on("SIGINT", () => {
       console.log("\n\n🛑 Stopping...");
-      console.log(`📊 Total messages received: ${messageCount}`);
+      console.log(`Total messages received: ${messageCount}`);
       logStream.end();
       process.exit(0);
     });
 
   } catch (error) {
-    console.error("❌ Failed to subscribe:", error);
+    console.error("Failed to subscribe:", error);
     process.exit(1);
   }
 }

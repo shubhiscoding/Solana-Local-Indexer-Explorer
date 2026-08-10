@@ -20,7 +20,7 @@ export const startIndexer = async () => {
     endpoint = `http://${endpoint}`;
   }
   
-  console.log("📡 Connecting to Yellowstone gRPC:", endpoint);
+  console.log("Connecting to Yellowstone gRPC:", endpoint);
 
   const client = new Client(
     endpoint,
@@ -68,7 +68,7 @@ export const startIndexer = async () => {
       });
     });
 
-    console.log("✅ Subscribed to slots and transactions");
+    console.log("Subscribed to slots and transactions");
 
     stream.on("data", async (data: any) => {
       // Handle slot updates - we can log them but don't need to store blocks
@@ -76,7 +76,7 @@ export const startIndexer = async () => {
         const s = data.slot.slot;
         const status = data.slot.status;
         // Status: 0 = first seen, 1 = confirmed, 2 = finalized
-        console.log(`🧱 Slot ${s} status: ${status}`);
+        console.log(`Slot ${s} status: ${status}`);
       }
 
       // Handle transaction updates
@@ -182,7 +182,7 @@ export const startIndexer = async () => {
 
             await upsertAccountsForTransaction(tx.id, accounts);
 
-            console.log(`💸 Indexed transaction ${signature.substring(0, 8)}... (slot ${slot})`);
+            console.log(`Indexed transaction ${signature.substring(0, 8)}... (slot ${slot})`);
           } else {
             await upsertFailedTransaction({
               signature,
@@ -193,19 +193,19 @@ export const startIndexer = async () => {
               blockTime,
             });
 
-            console.log(`❌ Indexed failed transaction ${signature.substring(0, 8)}... (slot ${slot})`);
+            console.log(`Indexed failed transaction ${signature.substring(0, 8)}... (slot ${slot})`);
           }
         } catch (error: any) {
           // Ignore unique constraint errors (transaction already exists)
           if (error.code !== "P2002") {
-            console.error(`❌ Error indexing transaction ${signature}:`, error);
+            console.error(`Error indexing transaction ${signature}:`, error);
           }
         }
       }
     });
 
     stream.on("error", (err) => {
-      console.log("❌ gRPC Stream Error:", err);
+      console.log("gRPC Stream Error:", err);
     });
 
     stream.on("end", () => {
@@ -216,7 +216,7 @@ export const startIndexer = async () => {
       console.log("🔌 gRPC stream closed.");
     });
   } catch (error) {
-    console.error("❌ Failed to subscribe:", error);
+    console.error("Failed to subscribe:", error);
     throw error;
   }
 };
