@@ -92,6 +92,31 @@ volumes:
   - ./test-ledger:/ledger
 ```
 
+## Connecting to a Custom gRPC
+
+To connect the indexer to a custom Yellowstone gRPC endpoint instead of the local validator:
+
+**Direct command (no file edits needed):**
+```bash
+YELLOWSTONE_ADDR=your-grpc-host:10000 YELLOWSTONE_XTOKEN=your-token docker compose up -d
+```
+
+**Or modify `docker-compose.yml`:**
+```yaml
+indexer:
+  environment:
+    DATABASE_URL: postgresql://postgres:password@postgres:5432/explorer
+    YELLOWSTONE_ADDR: your-grpc-host:10000
+    YELLOWSTONE_XTOKEN: your-auth-token  # optional, if gRPC requires auth
+```
+
+**Format:** `YELLOWSTONE_ADDR` accepts either `host:port` or full URLs (`http://host:port`, `https://host:port`).
+
+**Local development:**
+```bash
+YELLOWSTONE_ADDR=your-grpc-host:10000 pnpm dev
+```
+
 ## Tech Stack
 
 - **Validator**: Solana test-validator v1.18.26 + Yellowstone gRPC Geyser plugin v1.15.3
