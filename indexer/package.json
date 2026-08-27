@@ -8,7 +8,8 @@
     "build": "tsc",
     "start": "node dist/main.js",
     "migrate": "prisma migrate dev",
-    "debug-grpc": "tsx src/debug-grpc.ts"
+    "debug-grpc": "tsx src/debug-grpc.ts",
+    "test": "vitest run"
   },
   "keywords": [],
   "author": "",
@@ -27,6 +28,7 @@
   },
   "devDependencies": {
     "@types/bs58": "^5.0.0",
-    "tsx": "^4.21.0"
+    "tsx": "^4.21.0",
+    "vitest": "^4.1.11"
   }
 }
