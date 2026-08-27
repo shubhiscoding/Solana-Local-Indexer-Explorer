@@ -217,5 +217,3 @@ docker compose down -v
 | Explorer loads but shows zero transactions | No transactions have been sent yet | Run the test-transaction steps in Section 6.5 |
 | Apple Silicon: build is very slow | `linux/amd64` image runs under Rosetta emulation | Expected on first build; subsequent builds are cached and faster |
 | WSL2: Docker Desktop doesn't detect WSL | WSL2 not properly enabled or Docker Desktop's WSL integration is off | Docker Desktop → Settings → Resources → WSL Integration → enable for your distro |
-
-If none of these resolve the issue, capture logs with `docker compose logs > logs.txt` and check against [TEST_CASES_AND_VALIDATION.md](TEST_CASES_AND_VALIDATION.md) for expected behavior at each stage.
