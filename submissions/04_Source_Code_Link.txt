@@ -1,0 +1,97 @@
+================================================================================
+ SOLANA LOCAL EXPLORER — SOURCE CODE LINK
+ BITS Pilani · B.Sc. Computer Science · Capstone Project 2025-2026
+================================================================================
+
+PROJECT TITLE
+    Solana Local Explorer
+    A self-hosted, one-command block explorer and real-time transaction indexer
+    for private Solana validators.
+
+SUBMITTED BY
+    Garvit Dadheech
+    Shubh Kesharwani
+
+SUPERVISOR
+    Dharma Teja
+
+--------------------------------------------------------------------------------
+ GITHUB REPOSITORY
+--------------------------------------------------------------------------------
+
+    https://github.com/shubhiscoding/Solana-Local-Indexer-Explorer
+
+    Clone with:
+        git clone https://github.com/shubhiscoding/Solana-Local-Indexer-Explorer.git
+
+    Run with (Docker is the only prerequisite):
+        cd Solana-Local-Indexer-Explorer
+        docker compose up --build -d
+
+    Then open:
+        http://localhost:3000
+
+--------------------------------------------------------------------------------
+ IF THE REPOSITORY IS PRIVATE
+--------------------------------------------------------------------------------
+
+If the repository is not public at the time of evaluation, read access has been
+/ will be granted to the internal evaluator and the viva supervisor as GitHub
+collaborators.
+
+    To grant access:
+        GitHub repository -> Settings -> Collaborators -> Add people
+        -> enter the evaluator's GitHub username -> select "Read" -> Invite
+
+    Evaluator GitHub usernames to add:
+        <internal evaluator username>
+        <viva supervisor username>
+
+A complete, self-contained copy of the source is also included in this
+submission, so evaluation does not depend on repository access:
+
+    03_Code_Submission/Solana-Local-Indexer-Explorer-source.zip
+        136 files · ~1.0 MB
+        Excludes node_modules, .next build output, .git history and OS metadata.
+        Includes all source, Dockerfiles, Prisma schema and migrations,
+        both test suites, and the project documentation.
+
+--------------------------------------------------------------------------------
+ WHAT IS IN THE REPOSITORY
+--------------------------------------------------------------------------------
+
+    docker-compose.yml              Orchestration: 4 services, 2 volumes,
+                                    health-gated startup order
+    validator/                      Solana test validator + Yellowstone gRPC
+                                    Geyser plugin (multi-stage Dockerfile)
+    indexer/                        TypeScript gRPC stream consumer, Prisma
+                                    schema and migrations, 29 unit tests
+    explorer/                       Next.js 16 app: 5 REST routes, 4 UI pages,
+                                    9 unit tests
+    docs/screenshots/               Interface screenshots
+    README.md                       Quick start and user reference
+    INSTALLATION_GUIDE.md           Step-by-step first-time setup
+    TEST_CASES_AND_VALIDATION.md    Full 92-case test catalogue and results
+
+--------------------------------------------------------------------------------
+ DEMONSTRATION VIDEO
+--------------------------------------------------------------------------------
+
+    https://www.loom.com/share/67ac946f6bf04277842b41423a0b5730
+
+    Walkthrough of the setup and of every explorer feature.
+
+--------------------------------------------------------------------------------
+ VERIFYING THE TEST SUITE (no Docker required)
+--------------------------------------------------------------------------------
+
+    cd explorer && pnpm install && pnpm test     ->  9 passed  (9)
+    cd indexer  && pnpm install && pnpm test     -> 29 passed (29)
+
+    Both suites run in under a second and need no validator, database or
+    network. Verbatim console output is reproduced in Appendix D of the
+    project report and in Section 11 of the test and validation report.
+
+================================================================================
+ Last updated: 28 August 2026
+================================================================================
