@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: indexer
+  namespace: solana-explorer
+spec:
+  # Single replica: multiple indexers would write the same blocks twice
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: indexer
+  template:
+    metadata:
+      labels:
+        app: indexer
+    spec:
+      initContainers:
+        - name: wait-for-validator
+          image: busybox:1.36
+          command: ["sh", "-c", "until nc -z validator 10000; do echo waiting for validator; sleep 2; done"]
+        - name: wait-for-postgres
+          image: busybox:1.36
+          command: ["sh", "-c", "until nc -z postgres 5432; do echo waiting for postgres; sleep 2; done"]
+      containers:
+        - name: indexer
+          image: solana-local-indexer-explorer-indexer:latest
+          imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_PASSWORD
+            - name: DATABASE_URL
+              value: postgresql://postgres:$(POSTGRES_PASSWORD)@postgres:5432/explorer
+            - name: YELLOWSTONE_ADDR
+              value: validator:10000

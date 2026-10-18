@@ -1,0 +1,70 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: explorer
+  namespace: solana-explorer
+spec:
+  # Reach locally with: kubectl -n solana-explorer port-forward svc/explorer 3000:3000
+  type: ClusterIP
+  selector:
+    app: explorer
+  ports:
+    - name: http
+      port: 3000
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: explorer
+  namespace: solana-explorer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: explorer
+  template:
+    metadata:
+      labels:
+        app: explorer
+    spec:
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:1.36
+          command: ["sh", "-c", "until nc -z postgres 5432; do echo waiting for postgres; sleep 2; done"]
+      containers:
+        - name: explorer
+          image: solana-local-indexer-explorer-explorer:latest
+          imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          ports:
+            - name: http
+              containerPort: 3000
+          env:
+            # Next standalone binds to $HOSTNAME; Kubernetes sets it to the pod name (pod IP).
+            # Force all interfaces so localhost/port-forward works.
+            - name: HOSTNAME
+              value: "0.0.0.0"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_PASSWORD
+            - name: DATABASE_URL
+              value: postgresql://postgres:$(POSTGRES_PASSWORD)@postgres:5432/explorer
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
