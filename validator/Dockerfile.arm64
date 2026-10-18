@@ -1,0 +1,53 @@
+# ARM64 variant of the validator image for kind on Apple Silicon.
+# Anza does not publish a linux/aarch64 solana-release for v1.18.26,
+# so solana-test-validator is built from source at the same tag.
+
+# -----------------------------
+# BUILDER
+# -----------------------------
+FROM rust:1.76 AS builder
+
+WORKDIR /build
+
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    libudev-dev \
+    clang \
+    cmake \
+    protobuf-compiler \
+    && rm -rf /var/lib/apt/lists/*
+
+# Solana test validator (same version as the amd64 image)
+RUN git clone --depth 1 --branch v1.18.26 https://github.com/anza-xyz/agave.git
+WORKDIR /build/agave
+RUN cargo build --release --package agave-validator --bin solana-test-validator
+
+# Yellowstone geyser plugin (same tag as the amd64 image)
+WORKDIR /build
+RUN git clone https://github.com/rpcpool/yellowstone-grpc.git && \
+    cd yellowstone-grpc && \
+    git checkout v1.15.3+solana.1.18.26 || git checkout v1.15.3+solana.1.18.25
+WORKDIR /build/yellowstone-grpc
+RUN cargo build --release --package yellowstone-grpc-geyser
+
+# -----------------------------
+# FINAL RUNTIME IMAGE
+# -----------------------------
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    curl \
+    bzip2 \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /plugins /config /ledger
+
+COPY --from=builder /build/agave/target/release/solana-test-validator /usr/local/bin/solana-test-validator
+COPY --from=builder /build/yellowstone-grpc/target/release/libyellowstone_grpc_geyser.so /plugins/libyellowstone_grpc_geyser.so
+COPY plugin-config.json /config/plugin-config.json
+
+EXPOSE 8899 10000
+
+CMD ["solana-test-validator", "--ledger", "/ledger", "--geyser-plugin-config", "/config/plugin-config.json"]
